@@ -1,0 +1,45 @@
+- name: Generate SSH key
+  hosts: 127.0.0.1
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: Generate SSH key
+      command: ssh-keygen -t rsa -b 2048 -f ~/.ssh/id_rsa -N ""
+
+- name: Add a user and ssh key for logging in
+  hosts: web
+  remote_user: root
+  become: yes
+  tasks:
+    - name: add user david
+      user:
+        name: david
+        create_home: yes
+
+    - name: create ssh dir
+      file:
+        path: /home/david/.ssh/
+        state: directory
+        owner: david
+        group: david
+
+    - name: copy ssh key
+      copy:
+        src: ~/.ssh/id_rsa.pub
+        dest: /home/david/.ssh/id_rsa.pub
+        owner: david
+        group: david
+
+    # slurp reads remote file contents into a variable, encoded in base64 (why not use a shell with cat? because i'm a masochist)
+    - name: read key contents
+      slurp:
+        src: /home/david/.ssh/id_rsa.pub
+      register: key_data
+
+    - name: add key to authorized keys
+      lineinfile:
+        path: /home/david/.ssh/authorized_keys
+        line: "{{key_data.content | b64decode}}"
+        create: yes
+        group: david
+        owner: david
