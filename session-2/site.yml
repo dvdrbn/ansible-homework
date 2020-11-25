@@ -1,0 +1,8 @@
+---
+- name: apply docker installation
+  hosts: web
+  become: yes
+
+  roles:
+    - role: docker
+      user_list: []
