@@ -1,0 +1,6 @@
+---
+# vars file for docker
+install_docker_enging:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io

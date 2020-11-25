@@ -1,0 +1,86 @@
+---
+# tasks file for docker
+
+- name: update cache and install packages (ubuntu)
+  apt:
+    update_cache: yes
+    pkg:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg-agent
+      - software-properties-common
+  when: ansible_facts['distribution'] == 'Ubuntu'
+
+- name: update cache and install packages (CentOS)
+  yum: name=yum-utils state=present update_cache=yes
+  when: ansible_facts['distribution'] == 'CentOS'
+
+- name: add docker gpg key (ubuntu)
+  apt_key:
+    id: 9DC858229FC7DD38854AE2D88D81803C0EBFCD88
+    url: https://download.docker.com/linux/ubuntu/gpg
+  when: ansible_facts['distribution'] == 'Ubuntu'
+
+- name: add docker repo (ubuntu)
+  apt_repository:
+    repo: deb https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+    update_cache: yes
+  when: ansible_facts['distribution'] == 'Ubuntu'
+
+- name: add docker repo (CentOS)
+  yum_repository:
+    name: docker
+    description: docker repo
+    gpgcheck: no
+    baseurl: https://download.docker.com/linux/centos/7/$basearch/stable/
+  when: ansible_facts['distribution'] == 'CentOS'
+
+- name: install docker engine & python-pip (ubuntu)
+  apt:
+    update_cache: yes
+    name: '{{ install_docker_enging }}'
+  notify: restart docker
+  when: ansible_facts['distribution'] == 'Ubuntu'
+
+- name: install docker engine & python-pip (CentOS)
+  yum:
+    state: present
+    update_cache: yes
+    name: '{{ install_docker_enging }}'
+  notify: restart docker
+  when: ansible_facts['distribution'] == 'CentOS'
+
+- name: install pip (ubuntu)
+  apt: name=python-pip state=present
+  when: ansible_facts['distribution'] == 'Ubuntu'
+
+- name: install epel repo (CentOS)
+  yum: name=epel-release state=present update_cache=yes
+  when: ansible_facts['distribution'] == 'CentOS'
+
+- name: install python-pip (CentOS)
+  yum: name=python-pip state=present update_cache=yes
+  when: ansible_facts['distribution'] == 'CentOS'
+
+- name: install docker SDK for python
+  pip:
+    name:
+      - virtualenv
+      - docker
+
+- name: add user(s) to docker group
+  user:
+    name: "{{ item }}"
+    append: yes
+    groups: [docker]
+  with_items: "{{ [ansible_user] + user_list }}"
+
+- name: run nginx container
+  community.general.docker_container:
+    name: nginx
+    image: nginx
+    state: started
+    detach: yes
+    ports: 8080:80
+    container_default_behavior: compatibility

@@ -1,2 +1,5 @@
 # ignore hosts files
 hosts
+
+# ignore keys
+*.pem
